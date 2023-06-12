@@ -4,87 +4,57 @@ const motorModel = require('../models/motorDetails');
 const communicationController = require('./communicationController');
 const communicationModel = require('../models/communicationModel');
 const imageUploadController = require('./imageUploadController');
+const helper = require('./../helpers/helper')
+const moment = require('moment');
 
-async function processVahanDataFetch(req,res){
+async function processVahanDataFetch(params){
     try{
-        let regNumber;
-        if(req.body && req.body.regNumber){
-            regNumber = req.body.regNumber;
-        }else{
-            console.log("Track1");
-           regNumber = await imageUploadController.imageUploadController(req,res);
+        if(!params){
+            return { status : false, message : "Please send required fields" };
         }
-        
-        console.log("RegNUmber:",regNumber)
-        //regNumber = "HR12AA4196";
-        
-        let response;
-        //check if the regNumber is already checked
-        let ifExists = await motorModel.fetchByRegNumber(regNumber);
 
-        //console.log("IF EXISTS:",ifExists[0][0].id);
-        if(ifExists && ifExists[0] && ifExists[0][0] && ifExists[0][0].id){
+        let regNumber,response = {};
+        if(params && params.regNumber){
+            regNumber = params.regNumber;
+        }else{
+            regNumber = await imageUploadController.imageUploadController(params);
+        }
+        //console.log("------ Reg Number -------",regNumber);
+
+        // registration number vallidations
+        if(!regNumber || (typeof regNumber) !== "string"){
+            return { status : false, message : "Error detecting registration number." };
+        }
+
+        //check if the regNumber is already checked recently
+        let existedData = await motorModel.fetchByRegNumber(regNumber);
+        //console.log("Existed Data :",existedData);
+        if(existedData && existedData.length > 0){
             //check if need to send communication again
-            let existedData = ifExists[0][0];
-            let current_date = new Date();
-            let created_date = new Date(existedData['created_date']);
+            let differenceInDays = helper.countDaysDifference(new Date(),existedData['created_date'] ? existedData['created_date'] : new Date());
             
-            // To calculate the time difference of two dates
-            var Difference_In_Time = current_date.getTime() - created_date.getTime();
-            var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
-
-            if(Difference_In_Days > 15){
+            if(differenceInDays > config.communication_limit_days){
                 //insert into communication table
-                let insertCommuData = "("+
-                            "'SMS'"+","+
-                            "'"+ existedData['registration_number']+"')";
-                let insertCommunication = await communicationModel.insertCommunicationDetails(insertCommuData);
-                let communicationRes = await communicationController.sendSmsController(req,res);
-                communicationRes = JSON.parse(communicationRes)
-                console.log("Commnuication Response:",communicationRes[0].status);
-
-                // store communication in db
-                if(communicationRes[0].status == 1){
-                    console.log("Registration Number is uninsured. Communication sent.");
-                    let updateData = {
-                        status_id : 1,
-                        reg_number : existedData['registration_number']
-                    };
-                    let updateCommuData = await communicationModel.updateCommunicationDetails(updateData);
-                    response.message ="Registration Number is uninsured. Communication sent.";
-                    response.is_inssured =-1;
-
-                }else{
-                    let updateData = {
-                        status_id : -1,
-                        reg_number : existedData['registration_number']
-                    };
-                    let updateCommuData = await communicationModel.updateCommunicationDetails(updateData);
-                    response.message = "Registration Number is uninsured. Communication failed.";
-                    response.is_inssured =-1;
-                }
+                let communicationRes = await handleCommunication(existedData);
+                response = { ...response, ...communicationRes};
             }else{
                 response = {
-                    owner_name : ifExists[0][0]['owner_name'],
-                    registration_number : ifExists[0][0]['registration_number'],
-                    registration_date : ifExists[0][0]['registration_date'],
-                    insurance_upto : ifExists[0][0]['insurance_upto'],
+                    owner_name : existedData['owner_name'],
+                    registration_number : existedData['registration_number'],
+                    registration_date : existedData['registration_date'],
+                    insurance_upto : existedData['insurance_upto'],
                     message : "This registration number was already checked within the communication limit.",
-                    is_inssured : ifExists[0][0]['insurance_status']
+                    is_inssured : existedData['insurance_status']
                 };
             }
         }else{
-            console.log("Not Exists:");
             //fetch vehicle details from vahan
             let data = await vahanController.fetchRegistrationDetails(regNumber);
-            data = data['data'];
-            //console.log("Res Data:",data);
-            // handling Uninsured vehicle
-            let current_date = new Date();
-            let insurance_upto_date = new Date(data['insurance_upto']);
 
-            let insurance_status,is_communication_required;
-            if(insurance_upto_date <  current_date){
+            // handling Uninsured vehicle
+            let current_date = new Date(), insurance_upto_date = new Date(data['insurance_upto']);
+            let insurance_status, is_communication_required = true;
+            if(insurance_upto_date < current_date){
                 insurance_status = config.status.insuranceExpired;
                 is_communication_required = true;
             }else{
@@ -92,28 +62,23 @@ async function processVahanDataFetch(req,res){
                 is_communication_required = false;
             } 
 
-            //console.log("insurance_status:",insurance_status);
-            //console.log("is_communication_required:",is_communication_required);
             // process motor details
-            let insertData = "("+
-                            "'"+ data['registration_number']+"'"+","+
-                            "'"+  data['maker_model']+"'"+","+
-                            insurance_status+","+
-                            "'"+  data['owner_name']+"'"+","+
-                            "'"+  data['rto_code']+"'"+","+
-                            "'"+  data['rto_name']+"'"+","+
-                            "'"+  data['rto_city_id']+"'"+","+
-                            "'"+  data['rto_city_name']+"'"+","+
-                            "'"+  data['rto_state_id']+"'"+","+
-                            "'"+  data['rto_state_name']+"'"+","+
-                            "'"+  data['registration_date']+"'"+","+
-                            "'"+  data['insurance_upto']+"'"+","+
-                            "'"+ data['fitness_upto']+"'"+","+
-                            is_communication_required+")";
-            //console.log("insertData:",insertData);
-            // store in Db
-            let res = await motorModel.insertIntoMotorDetails(insertData);
-            //console.log("insert response:",res);
+            let insertData = {
+                registration_number : data['registration_number'],
+                maker_model : data['maker_model'],
+                owner_name : data['owner_name'],
+                rto_code : data['rto_code'],
+                rto_name : data['rto_name'],
+                rto_city_id : data['rto_city_id'],
+                rto_city_name : data['rto_city_name'],
+                rto_state_id : data['rto_state_id'],
+                rto_state_name : data['rto_state_name'],
+                registration_date : data['registration_date'],
+                insurance_upto : data['insurance_upto'],
+                fitness_upto : data['fitness_upto'],
+                is_communication_required : is_communication_required,
+            }
+            await motorModel.insertIntoMotorDetails(insertData);
             response = {
                 owner_name : data['owner_name'],
                 registration_number : data['registration_number'],
@@ -121,59 +86,65 @@ async function processVahanDataFetch(req,res){
                 insurance_upto : data['insurance_upto']
             };
 
-            //console.log("Track1");
-            //sent communication if required
-            if(is_communication_required){
-                //console.log("Track2");
-                //insert into communication table
-                let insertCommuData = "("+
-                            "'SMS'"+","+
-                            "'"+ data['registration_number']+"')";
-                let insertCommunication = await communicationModel.insertCommunicationDetails(insertCommuData);
-                let communicationRes = await communicationController.sendSmsController(req,res);
-                communicationRes = JSON.parse(communicationRes)
-                console.log("Commnuication Response:",communicationRes[0].status);
-
-                // store communication in db
-                if(communicationRes[0].status == 1){
-                    console.log("Registration Number is uninsured. Communication sent.");
-                    let updateData = {
-                        status_id : 1,
-                        reg_number : data['registration_number']
-                    };
-                    let updateCommuData = await communicationModel.updateCommunicationDetails(updateData);
-                    response.message ="Registration Number is uninsured. Communication sent.";
-                    response.is_inssured =-1;
-                }else{
-                    let updateData = {
-                        status_id : -1,
-                        reg_number : data['registration_number']
-                    };
-                    let updateCommuData = await communicationModel.updateCommunicationDetails(updateData);
-                    response.message = "Registration Number is uninsured. Communication failed.";
-                    response.is_inssured =-1;
-                }
+            //send communication if required
+            if(insurance_status === config.status.insuranceExpired){
+                let communicationRes =  await handleCommunication(data);
+                response = { ...response, ...communicationRes};
             }else{
                 response.message = "Registration Number is already insured.";
                 response.is_inssured =1;
             }
         }
-
-        console.log("Final Response:",response)
-        res.status(200).send(response);
+        console.log("############### Final Response:\n",response)
+        return response;
     }catch(err){
-        res.status(400).send(err);
+        throw Error(err);
     }
     
 }
 
-async function fetchAllMotorData(req,res){
+async function handleCommunication(data){
+    try{
+        let response = {};
+        //insert into communication table
+        let insertCommuData = {
+            communication_type : "SMS",
+            reg_number : data['registration_number']
+        }
+        await communicationModel.insertCommunicationDetails(insertCommuData);
+
+        let communicationRes = await communicationController.sendSmsController();
+        communicationRes = JSON.parse(communicationRes)
+
+        // store communication in db
+        let updateCommunicationData = { communication_date : moment().format('yyyy-mm-dd hh:mm:ss') };
+        let updateFindObj = { reg_number : data['registration_number'] };
+        if(communicationRes[0].status == 1){
+            console.log("Registration Number is uninsured. Communication sent.");
+            updateCommunicationData = { status_id : 1 };
+            response.message ="Registration Number is uninsured. Communication sent.";
+            response.is_inssured = -1;
+
+        }else{
+            updateCommunicationData = { status_id : -1 };
+            response.message = "Registration Number is uninsured. Communication failed.";
+            response.is_inssured = -1;
+        }
+        await communicationModel.updateCommunicationDetails(updateCommunicationData, updateFindObj);
+        return response;
+    }catch(error){
+        console.log("Error : \n",error);
+        throw error;
+    }
+}
+
+async function fetchAllMotorData(params){
     try{
         let data = await motorModel.fetchAllMotorData();
         console.log("Data:APIController:",data);
-        res.status(200).send(data);
+        return data;
     }catch(err){
-        res.status(400).send(err);
+        throw Error(err);
     }
     
 }
