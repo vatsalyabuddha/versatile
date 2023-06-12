@@ -4,6 +4,11 @@ const motorModel = require('../models/motorDetails');
 const communicationController = require('./communicationController');
 const communicationModel = require('../models/communicationModel');
 const imageUploadController = require('./imageUploadController');
+const vision = require('@google-cloud/vision');
+const client = new vision.ImageAnnotatorClient({
+    keyFilename: './visiontest-373706-2154cd2c06b9.json'
+});
+const saveFileService = require('../services/saveFileService');
 
 async function processVahanDataFetch(req,res){
     try{
@@ -12,9 +17,14 @@ async function processVahanDataFetch(req,res){
             regNumber = req.body.regNumber;
         }else{
             console.log("Track1");
-           regNumber = await imageUploadController.imageUploadController(req,res);
+            try {
+                await processVahanImageDataFetch(req, res);
+                regNumber = req.regNumber;
+                console.log(regNumber);
+            } catch (exception) {
+                return res.status(200).send("Could not process image this time, please try after some time.");
+            }
         }
-        
         console.log("RegNUmber:",regNumber)
         //regNumber = "HR12AA4196";
         
@@ -76,9 +86,10 @@ async function processVahanDataFetch(req,res){
         }else{
             console.log("Not Exists:");
             //fetch vehicle details from vahan
+            console.log('RegNumber====' + regNumber);
             let data = await vahanController.fetchRegistrationDetails(regNumber);
             data = data['data'];
-            //console.log("Res Data:",data);
+            console.log("Res Data:",data);
             // handling Uninsured vehicle
             let current_date = new Date();
             let insurance_upto_date = new Date(data['insurance_upto']);
@@ -167,6 +178,31 @@ async function processVahanDataFetch(req,res){
     
 }
 
+async function processVahanImageDataFetch(req,res){
+    try {
+        // Vision API Call
+        const currentFolderPath = await saveFileService.saveFile(req.files.number_plate_image, "documents/current", new Date());
+        await client.textDetection(currentFolderPath)
+        .then((result) => {
+            const numberPlateText = result[0].fullTextAnnotation.text.split("\n");
+            result.forEach((textAnnotationsData) => {
+                textAnnotationsData.textAnnotations.forEach((data) => {
+                    let finalTransformedData = data.description;
+                    finalTransformedData = finalTransformedData.replace(/ /g, "");
+                    finalTransformedData = finalTransformedData.replace(/\n/g, "");
+                    if (finalTransformedData.length === 10) {
+                        req.regNumber = finalTransformedData;
+                    }
+                })
+            });
+        })
+    } catch (err) {
+        throw "Could Not Process Image this time. Please try again later";
+    }
+        
+    
+}
+
 async function fetchAllMotorData(req,res){
     try{
         let data = await motorModel.fetchAllMotorData();
@@ -177,4 +213,4 @@ async function fetchAllMotorData(req,res){
     }
     
 }
-module.exports = {processVahanDataFetch, fetchAllMotorData}
+module.exports = {processVahanDataFetch, processVahanImageDataFetch, fetchAllMotorData}
