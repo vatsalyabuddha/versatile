@@ -15,6 +15,9 @@ async function fetchAllMotorData(params){
             if(params.fuel_type){
                 sql += dbHelper.andWhere("fuel_type",params.fuel_type,"like");
             }
+            if(params.is_insured){
+                sql += dbHelper.andWhere("insurance_status",params.is_insured,"=",true);
+            }
 
             if(params.date_to){
                 sql += dbHelper.andWhere("created_date",moment(params.date_to).format("YYYY-MM-DD 23:59:59"),"<=");
@@ -25,9 +28,9 @@ async function fetchAllMotorData(params){
             if(params.date_from){
                 sql += dbHelper.andWhere("created_date",moment(params.date_from).format("YYYY-MM-DD 00:00:00"),">=");
             }else {
-                sql += dbHelper.andWhere("created_date",moment().local().subtract(1, 'months').format("YYYY-MM-DD 00:00:00"),"<=");
+                sql += dbHelper.andWhere("created_date",moment().local().subtract(1, 'months').format("YYYY-MM-DD 00:00:00"),">=");
             }
-            //console.log("------ final sql --------\n",sql);
+            console.log("------ final sql --------\n",sql);
             
             db.query(sql, function (error, result, fields) {
                 if (error) {
