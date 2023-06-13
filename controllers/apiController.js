@@ -20,8 +20,7 @@ async function processVahanDataFetch(params){
         }else{
             console.log("Track1");
             try {
-                regNumber = await vahanImageDataFetchController.vahanImageDataFetchController(params);  
-                console.log('regNumber===== ' + regNumber + " ((())) " + typeof(regNumber));              
+                regNumber = await vahanImageDataFetchController.vahanImageDataFetchController(params);           
             } catch (exception) {
                 throw "Could not process image this time, please try after some time.";
             }
