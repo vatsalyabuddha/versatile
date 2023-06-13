@@ -1,22 +1,19 @@
 const communicationService = require("../services/communicationService.js");
 
-const sendEmailController = async (req, res) => {
+const sendEmailController = async () => {
   try {
     const emailList = [
-      "sakshamkashyap761@gmail.com",
-      "vatsalya.buddha@insurancedekho.com",
-      "princekashyap77@gmail.com",
-      "sartaj.1@insurancedekho.com"
+      "vatsalya.buddha@insurancedekho.com"
     ];
     const response = await communicationService.sendEmail(emailList);
-    return res.status(200).send(response);
+    return response;
   } catch (e) {
     throw e;
   }
 };
-const sendSmsController = async (req, res) => {
+const sendSmsController = async () => {
   try {
-    const mobileList = [8700744990, 7827555682];          
+    const mobileList = [9825527889];          
     const response = await communicationService.sendSms(mobileList);
     console.log(response,"contoller")
     return response;

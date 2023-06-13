@@ -114,6 +114,9 @@ async function handleCommunication(data){
         let communicationRes = await communicationController.sendSmsController();
         communicationRes = JSON.parse(communicationRes)
 
+        let communicationRes2 = await communicationController.sendEmailController();
+        communicationRes2 = JSON.parse(communicationRes2)
+
         // store communication in db
         let insertCommuData = {
             communication_type : "SMS",
@@ -132,8 +135,26 @@ async function handleCommunication(data){
             response.message = "Registration Number is uninsured. Communication failed.";
             response.is_inssured = -1;
         }
-        console.log("----- Communication Data ------\n",insertCommuData);
+
+        // store communication in db
+        let insertCommuData2 = {
+            communication_type : "EMAIL",
+            reg_number : data['registration_number'],
+            communication_date : moment().local().format("YYYY-MM-DD HH:MM:SS")
+        }
+        
+        if(communicationRes[0].status == 1){
+            console.log("Registration Number is uninsured. Communication sent.");
+            insertCommuData2['status_id'] = 1;
+
+        }else{
+            insertCommuData2['status_id'] =  -1;
+            response.message = "Registration Number is uninsured. Communication failed.";
+        }
+        //console.log("----- Communication Data ------\n",insertCommuData);
+        //console.log("----- Communication Data ------\n",insertCommuData2);
         await communicationModel.insertCommunicationDetails(insertCommuData);
+        await communicationModel.insertCommunicationDetails(insertCommuData2);
         return response;
     }catch(error){
         console.log("Error : \n",error);
