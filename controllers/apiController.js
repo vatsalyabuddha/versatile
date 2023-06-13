@@ -14,6 +14,7 @@ const moment = require('moment');
 
 async function processVahanDataFetch(params){
     try{
+        console.log("--- Params : \n",params);
         if(!params){
             return { status : false, message : "Please send required fields" };
         }
@@ -22,19 +23,17 @@ async function processVahanDataFetch(params){
         if(params && params.regNumber){
             regNumber = params.regNumber;
         }else{
-            try {
-                await processVahanImageDataFetch(req, res);
-                regNumber = req.regNumber;
-                console.log(regNumber);
-            } catch (exception) {
-                return res.status(200).send("Could not process image this time, please try after some time.");
-            }
+            console.log("--- TRACK1 --------");
+            regNumber = await imageUploadController.processVahanImageDataFetch(params);      
         }
+        
 
         // registration number vallidations
         if(!regNumber || (typeof regNumber) !== "string"){
             return { status : false, message : "Error detecting registration number." };
         }
+        console.log(regNumber);
+        return { status : false, message : "default." };
 
         //check if the regNumber is already checked recently
         let existedData = await motorModel.fetchByRegNumber(regNumber);
@@ -118,10 +117,10 @@ async function processVahanDataFetch(params){
     
 }
 
-async function processVahanImageDataFetch(req,res){
+async function processVahanImageDataFetch(params){
     try {
         // Vision API Call
-        const currentFolderPath = await saveFileService.saveFile(req.files.number_plate_image, "documents/current", new Date());
+        const currentFolderPath = await saveFileService.saveFile(params.number_plate_image, "documents/current", new Date());
         await client.textDetection(currentFolderPath)
         .then((result) => {
             const numberPlateText = result[0].fullTextAnnotation.text.split("\n");
@@ -131,7 +130,7 @@ async function processVahanImageDataFetch(req,res){
                     finalTransformedData = finalTransformedData.replace(/ /g, "");
                     finalTransformedData = finalTransformedData.replace(/\n/g, "");
                     if (finalTransformedData.length === 10) {
-                        req.regNumber = finalTransformedData;
+                        return finalTransformedData;
                     }
                 })
             });
@@ -139,8 +138,6 @@ async function processVahanImageDataFetch(req,res){
     } catch (err) {
         throw "Could Not Process Image this time. Please try again later";
     }
-        
-    
 }
 
 async function handleCommunication(data){
