@@ -1,3 +1,4 @@
+const fs = require("fs");
 const vision = require('@google-cloud/vision');
 const client = new vision.ImageAnnotatorClient({
     keyFilename: './visiontest-373706-2154cd2c06b9.json'
@@ -30,6 +31,7 @@ async function vahanImageDataFetchController(req){
             if (req.regNumber === null || req.regNumber === undefined) {
                 throw "Could Not Process Image this time. Please try again later";
             }
+            fs.unlinkSync(currentFolderPath);
             return req.regNumber.toString();
         });
     } catch (err) {
