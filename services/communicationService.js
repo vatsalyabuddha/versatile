@@ -11,7 +11,7 @@ const sendEmail = ( emailList ) => {
             }
             data.to = JSON.stringify(to);
         }
-        data.template_name = 'EMAIL-TEMP_INS';
+        data.template_name = 'MOTOR_RULE_AUTO_RENEWAL_INS';
         var options = {
             protocol: config.insCommunication.protocol,
             host: config.insCommunication.host,

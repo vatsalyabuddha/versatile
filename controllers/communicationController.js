@@ -1,12 +1,12 @@
 const communicationService = require("../services/communicationService.js");
 
-const sendEmailController = async (req, res) => {
+const sendEmailController = async () => {
   try {
     const emailList = [
       "vatsalya.buddha@insurancedekho.com"
     ];
     const response = await communicationService.sendEmail(emailList);
-    return res.status(200).send(response);
+    return response;
   } catch (e) {
     throw e;
   }
