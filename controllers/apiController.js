@@ -19,7 +19,8 @@ async function processVahanDataFetch(params){
             regNumber = params.regNumber;
         }else{
             try {
-                regNumber = await vahanImageDataFetchController.vahanImageDataFetchController(params);           
+                regNumber = await vahanImageDataFetchController.vahanImageDataFetchController(params);   
+                console.log("----------- Reg Number -----------", regNumber);        
             } catch (exception) {
                 console.log("Error: ",exception);
                 return {
@@ -60,57 +61,66 @@ async function processVahanDataFetch(params){
             //fetch vehicle details from vahan
             console.log('RegNumber====' + regNumber);
             let data = await vahanController.fetchRegistrationDetails(regNumber);
+            console.log("------- vahan data ------\n",data);
+            if(data && data['registration_number']){
+                // handling Uninsured vehicle
+                let current_date = new Date(), insurance_upto_date = new Date(data['insurance_upto']);
+                let insurance_status = -1, is_communication_required = true;
+                if(insurance_upto_date < current_date){
+                    insurance_status = config.status.insuranceExpired;
+                    is_communication_required = true;
+                }else{
+                    insurance_status = config.status.insuranceValid; 
+                    is_communication_required = false;
+                } 
 
-            // handling Uninsured vehicle
-            let current_date = new Date(), insurance_upto_date = new Date(data['insurance_upto']);
-            let insurance_status = -1, is_communication_required = true;
-            if(insurance_upto_date < current_date){
-                insurance_status = config.status.insuranceExpired;
-                is_communication_required = true;
+                // process motor details
+                let insertData = {
+                    registration_number : data['registration_number'],
+                    maker_model : data['maker_model'],
+                    owner_name : data['owner_name'],
+                    rto_code : data['rto_code'],
+                    rto_name : data['rto_name'],
+                    rto_city_id : data['rto_city_id'],
+                    rto_city_name : data['rto_city_name'],
+                    rto_state_id : data['rto_state_id'],
+                    rto_state_name : data['rto_state_name'],
+                    registration_date : data['registration_date'],
+                    insurance_upto : data['insurance_upto'],
+                    fitness_upto : data['fitness_upto'],
+                    make_name : data['make_name'],
+                    model_name : data['model_name'],
+                    fuel_type : data['fuel_type'],
+                    is_communication_required : is_communication_required ? 1 : 0,
+                    insurance_status : insurance_status
+                }
+                await motorModel.insertIntoMotorDetails(insertData);
+                response = {
+                    owner_name : data['owner_name'],
+                    registration_number : data['registration_number'],
+                    registration_date : data['registration_date'],
+                    insurance_upto : data['insurance_upto']
+                };
+
+                //send communication if required
+                if(insurance_status === config.status.insuranceExpired){
+                    let communicationRes =  await handleCommunication(data);
+                    response = { ...response, ...communicationRes};
+                }else{
+                    response.message = "Registration Number is already insured.";
+                    response.is_inssured =1;
+                }
             }else{
-                insurance_status = config.status.insuranceValid; 
-                is_communication_required = false;
-            } 
-
-            // process motor details
-            let insertData = {
-                registration_number : data['registration_number'],
-                maker_model : data['maker_model'],
-                owner_name : data['owner_name'],
-                rto_code : data['rto_code'],
-                rto_name : data['rto_name'],
-                rto_city_id : data['rto_city_id'],
-                rto_city_name : data['rto_city_name'],
-                rto_state_id : data['rto_state_id'],
-                rto_state_name : data['rto_state_name'],
-                registration_date : data['registration_date'],
-                insurance_upto : data['insurance_upto'],
-                fitness_upto : data['fitness_upto'],
-                make_name : data['make_name'],
-                model_name : data['model_name'],
-                fuel_type : data['fuel_type'],
-                is_communication_required : is_communication_required ? 1 : 0,
-                insurance_status : insurance_status
+                console.log("---- Registration Details not found on VAHAN ----");
+                return {
+                    status : false,
+                    message : "Registration Details not found on VAHAN for " + regNumber
+                }
             }
-            await motorModel.insertIntoMotorDetails(insertData);
-            response = {
-                owner_name : data['owner_name'],
-                registration_number : data['registration_number'],
-                registration_date : data['registration_date'],
-                insurance_upto : data['insurance_upto']
-            };
-
-            //send communication if required
-            if(insurance_status === config.status.insuranceExpired){
-                let communicationRes =  await handleCommunication(data);
-                response = { ...response, ...communicationRes};
-            }else{
-                response.message = "Registration Number is already insured.";
-                response.is_inssured =1;
-            }
+            
         }
         console.log("############### Final Response:\n",response)
-        return response;
+        return {status : true , data : response};
     }catch(err){
         return {
             status : false,
