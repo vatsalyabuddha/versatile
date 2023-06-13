@@ -109,31 +109,30 @@ async function processVahanDataFetch(params){
 async function handleCommunication(data){
     try{
         let response = {};
-        //insert into communication table
-        let insertCommuData = {
-            communication_type : "SMS",
-            reg_number : data['registration_number']
-        }
-        await communicationModel.insertCommunicationDetails(insertCommuData);
 
         let communicationRes = await communicationController.sendSmsController();
         communicationRes = JSON.parse(communicationRes)
 
         // store communication in db
-        let updateCommunicationData = { communication_date : moment().format('yyyy-mm-dd hh:mm:ss') };
-        let updateFindObj = { reg_number : data['registration_number'] };
+        let insertCommuData = {
+            communication_type : "SMS",
+            reg_number : data['registration_number'],
+            communication_date : moment().local().format("YYYY-MM-DD HH:MM:SS")
+        }
+        
         if(communicationRes[0].status == 1){
             console.log("Registration Number is uninsured. Communication sent.");
-            updateCommunicationData = { status_id : 1 };
+            insertCommuData['status_id'] = 1;
             response.message ="Registration Number is uninsured. Communication sent.";
             response.is_inssured = -1;
 
         }else{
-            updateCommunicationData = { status_id : -1 };
+            insertCommuData['status_id'] =  -1;
             response.message = "Registration Number is uninsured. Communication failed.";
             response.is_inssured = -1;
         }
-        await communicationModel.updateCommunicationDetails(updateCommunicationData, updateFindObj);
+        console.log("----- Communication Data ------\n",insertCommuData);
+        await communicationModel.insertCommunicationDetails(insertCommuData);
         return response;
     }catch(error){
         console.log("Error : \n",error);
