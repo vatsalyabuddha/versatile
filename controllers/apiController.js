@@ -99,8 +99,14 @@ async function processVahanDataFetch(params){
                     owner_name : data['owner_name'],
                     registration_number : data['registration_number'],
                     registration_date : data['registration_date'],
-                    insurance_upto : data['insurance_upto']
+                    insurance_upto : data['insurance_upto'],
+                    maker_model : data['maker_model'],
+                    engine_number : data['engine_number'],
+                    chassis_number : data['chassis_number']
                 };
+                if(data['insurer']){
+                    response['insurer'] = data['insurer'];
+                }
 
                 //send communication if required
                 if(insurance_status === config.status.insuranceExpired){
