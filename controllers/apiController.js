@@ -53,7 +53,7 @@ async function processVahanDataFetch(params){
 
             // handling Uninsured vehicle
             let current_date = new Date(), insurance_upto_date = new Date(data['insurance_upto']);
-            let insurance_status, is_communication_required = true;
+            let insurance_status = -1, is_communication_required = true;
             if(insurance_upto_date < current_date){
                 insurance_status = config.status.insuranceExpired;
                 is_communication_required = true;
@@ -79,7 +79,8 @@ async function processVahanDataFetch(params){
                 make_name : data['make_name'],
                 model_name : data['model_name'],
                 fuel_type : data['fuel_type'],
-                is_communication_required : is_communication_required,
+                is_communication_required : is_communication_required ? 1 : 0,
+                insurance_status : insurance_status
             }
             await motorModel.insertIntoMotorDetails(insertData);
             response = {
