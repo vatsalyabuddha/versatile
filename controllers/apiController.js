@@ -3,14 +3,9 @@ const vahanController = require('./vahanController');
 const motorModel = require('../models/motorDetails');
 const communicationController = require('./communicationController');
 const communicationModel = require('../models/communicationModel');
-const imageUploadController = require('./imageUploadController');
-const vision = require('@google-cloud/vision');
-const client = new vision.ImageAnnotatorClient({
-    keyFilename: './visiontest-373706-2154cd2c06b9.json'
-});
-const saveFileService = require('../services/saveFileService');
 const helper = require('./../helpers/helper')
 const moment = require('moment');
+const vahanImageDataFetchController = require('./vahanImageDataFetchController');
 
 async function processVahanDataFetch(params){
     try{
@@ -23,17 +18,20 @@ async function processVahanDataFetch(params){
         if(params && params.regNumber){
             regNumber = params.regNumber;
         }else{
-            console.log("--- TRACK1 --------");
-            regNumber = await imageUploadController.processVahanImageDataFetch(params);      
+            console.log("Track1");
+            try {
+                regNumber = await vahanImageDataFetchController.vahanImageDataFetchController(params);  
+                console.log('regNumber===== ' + regNumber + " ((())) " + typeof(regNumber));              
+            } catch (exception) {
+                throw "Could not process image this time, please try after some time.";
+            }
         }
-        
 
         // registration number vallidations
         if(!regNumber || (typeof regNumber) !== "string"){
             return { status : false, message : "Error detecting registration number." };
         }
         console.log(regNumber);
-        return { status : false, message : "default." };
 
         //check if the regNumber is already checked recently
         let existedData = await motorModel.fetchByRegNumber(regNumber);
@@ -117,29 +115,6 @@ async function processVahanDataFetch(params){
     
 }
 
-async function processVahanImageDataFetch(params){
-    try {
-        // Vision API Call
-        const currentFolderPath = await saveFileService.saveFile(params.number_plate_image, "documents/current", new Date());
-        await client.textDetection(currentFolderPath)
-        .then((result) => {
-            const numberPlateText = result[0].fullTextAnnotation.text.split("\n");
-            result.forEach((textAnnotationsData) => {
-                textAnnotationsData.textAnnotations.forEach((data) => {
-                    let finalTransformedData = data.description;
-                    finalTransformedData = finalTransformedData.replace(/ /g, "");
-                    finalTransformedData = finalTransformedData.replace(/\n/g, "");
-                    if (finalTransformedData.length === 10) {
-                        return finalTransformedData;
-                    }
-                })
-            });
-        })
-    } catch (err) {
-        throw "Could Not Process Image this time. Please try again later";
-    }
-}
-
 async function handleCommunication(data){
     try{
         let response = {};
@@ -183,4 +158,4 @@ async function fetchAllMotorData(params){
     }
     
 }
-module.exports = {processVahanDataFetch, processVahanImageDataFetch, fetchAllMotorData}
+module.exports = {processVahanDataFetch, fetchAllMotorData}
