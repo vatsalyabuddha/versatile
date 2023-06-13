@@ -9,7 +9,7 @@ const vahanImageDataFetchController = require('./vahanImageDataFetchController')
 
 async function processVahanDataFetch(params){
     try{
-        console.log("--- Params : \n",params);
+        // console.log("--- Params : \n",params);
         if(!params){
             return { status : false, message : "Please send required fields" };
         }
@@ -18,11 +18,14 @@ async function processVahanDataFetch(params){
         if(params && params.regNumber){
             regNumber = params.regNumber;
         }else{
-            console.log("Track1");
             try {
                 regNumber = await vahanImageDataFetchController.vahanImageDataFetchController(params);           
             } catch (exception) {
-                throw "Could not process image this time, please try after some time.";
+                console.log("Error: ",exception);
+                return {
+                    status : false,
+                    message : "Could not process image this time, please try after some time."
+                };
             }
         }
 
@@ -109,7 +112,10 @@ async function processVahanDataFetch(params){
         console.log("############### Final Response:\n",response)
         return response;
     }catch(err){
-        throw err;
+        return {
+            status : false,
+            message : "Could not process the data, please try after some time."
+        };
     }
     
 }
@@ -174,7 +180,11 @@ async function fetchAllMotorData(params){
         let data = await motorModel.fetchAllMotorData(params.filters ? params.filters : {});
         return data;
     }catch(err){
-        throw err;
+        console.log("Error:\n",err);
+        return {
+            status : false,
+            message : "Could not process the request, please try after some time."
+        };
     }
     
 }
