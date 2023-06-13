@@ -76,6 +76,9 @@ async function processVahanDataFetch(params){
                 registration_date : data['registration_date'],
                 insurance_upto : data['insurance_upto'],
                 fitness_upto : data['fitness_upto'],
+                make_name : data['make_name'],
+                model_name : data['model_name'],
+                fuel_type : data['fuel_type'],
                 is_communication_required : is_communication_required,
             }
             await motorModel.insertIntoMotorDetails(insertData);
@@ -98,7 +101,7 @@ async function processVahanDataFetch(params){
         console.log("############### Final Response:\n",response)
         return response;
     }catch(err){
-        throw Error(err);
+        throw err;
     }
     
 }
@@ -140,11 +143,10 @@ async function handleCommunication(data){
 
 async function fetchAllMotorData(params){
     try{
-        let data = await motorModel.fetchAllMotorData();
-        console.log("Data:APIController:",data);
+        let data = await motorModel.fetchAllMotorData(params.filters ? params.filters : {});
         return data;
     }catch(err){
-        throw Error(err);
+        throw err;
     }
     
 }

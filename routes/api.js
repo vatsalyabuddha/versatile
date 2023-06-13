@@ -29,10 +29,23 @@ router.post('/process-reg',async (req,res) => {
 })
 
 router.get('/total-reg-checked', async (req,res) => {
-    // const response = await apiController.fetchAllMotorData();
-    // console.log("API:Route:",response);
-    // res.status(200).send(response);
-    apiController.fetchAllMotorData(req,res);
+    let params = req.body;
+    try{
+        const result = await apiController.fetchAllMotorData(params);
+        res.send(result);
+    }catch(error){
+        res.sendStatus(400).send(error)
+    }
+})
+
+router.post('/vehicle-list', async (req,res) => {
+    let params = req.body;
+    try{
+        const result = await apiController.fetchAllMotorData(params);
+        res.send(result);
+    }catch(error){
+        res.sendStatus(400).send(error)
+    }
 })
 
 module.exports = router 
