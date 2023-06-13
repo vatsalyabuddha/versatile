@@ -12,7 +12,7 @@ router.post('/init-process',async (req,res) => {
     let params = req.files ? req.files : req.body ? req.body  : {};
     try{
         const result = await apiController.processVahanDataFetch(params);
-        res.send(result)
+        res.send(result);
     }catch(error){
         res.status(400).send(error)
     }

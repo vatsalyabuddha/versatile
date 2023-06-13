@@ -3,12 +3,13 @@ const vahanController = require('./vahanController');
 const motorModel = require('../models/motorDetails');
 const communicationController = require('./communicationController');
 const communicationModel = require('../models/communicationModel');
-const imageUploadController = require('./imageUploadController');
 const helper = require('./../helpers/helper')
 const moment = require('moment');
+const vahanImageDataFetchController = require('./vahanImageDataFetchController');
 
 async function processVahanDataFetch(params){
     try{
+        console.log("--- Params : \n",params);
         if(!params){
             return { status : false, message : "Please send required fields" };
         }
@@ -17,14 +18,20 @@ async function processVahanDataFetch(params){
         if(params && params.regNumber){
             regNumber = params.regNumber;
         }else{
-            regNumber = await imageUploadController.imageUploadController(params);
+            console.log("Track1");
+            try {
+                regNumber = await vahanImageDataFetchController.vahanImageDataFetchController(params);  
+                console.log('regNumber===== ' + regNumber + " ((())) " + typeof(regNumber));              
+            } catch (exception) {
+                throw "Could not process image this time, please try after some time.";
+            }
         }
-        //console.log("------ Reg Number -------",regNumber);
 
         // registration number vallidations
         if(!regNumber || (typeof regNumber) !== "string"){
             return { status : false, message : "Error detecting registration number." };
         }
+        console.log(regNumber);
 
         //check if the regNumber is already checked recently
         let existedData = await motorModel.fetchByRegNumber(regNumber);
@@ -49,6 +56,7 @@ async function processVahanDataFetch(params){
             }
         }else{
             //fetch vehicle details from vahan
+            console.log('RegNumber====' + regNumber);
             let data = await vahanController.fetchRegistrationDetails(regNumber);
 
             // handling Uninsured vehicle

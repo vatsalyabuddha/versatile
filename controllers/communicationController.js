@@ -15,7 +15,6 @@ const sendSmsController = async () => {
   try {
     const mobileList = [9825527889];          
     const response = await communicationService.sendSms(mobileList);
-    console.log(response,"contoller")
     return response;
   } catch (e) {
     throw e;
