@@ -8,7 +8,8 @@ var config = {
         insuranceDefault : 0,
         insuranceValid : 1,
         insuranceExpired : -1
-    }
+    },
+    communication_limit_days : 15
 }
 
 module.exports = config;
