@@ -8,35 +8,44 @@ router.get('/',(req,res) => {
     res.send('API!!');
 })
 
-router.post('/init-process',(req,res) => {
-    // const regNumber = req.body.regNumber;
-    // const response = apiController.processVahanDataFetch(req,res);
-    // res.status(200).send(response.message);
-    apiController.processVahanDataFetch(req,res);
+router.post('/init-process',async (req,res) => {
+    let params = req.files ? req.files : req.body ? req.body  : {};
+    try{
+        const result = await apiController.processVahanDataFetch(params);
+        res.send(result)
+    }catch(error){
+        res.status(400).send(error)
+    }
 })
 
-router.post('/process-reg',(req,res) => {
-
-
+router.post('/process-reg',async (req,res) => {
+    let params = req.files ? req.files : req.body ? req.body  : {};
+    try{
+        const result = await apiController.processVahanDataFetch(params);
+        res.send(result)
+    }catch(error){
+        res.status(400).send(error)
+    }
 })
 
 router.get('/total-reg-checked', async (req,res) => {
-    // const response = await apiController.fetchAllMotorData();
-    // console.log("API:Route:",response);
-    // res.status(200).send(response);
-    apiController.fetchAllMotorData(req,res);
+    let params = req.body;
+    try{
+        const result = await apiController.fetchAllMotorData(params);
+        res.send(result);
+    }catch(error){
+        res.sendStatus(400).send(error)
+    }
 })
 
-router.get('/total-uninsured-reg',(req,res) => {
-
-})
-
-router.get('/total-insured-reg',(req,res) => {
-
-})
-
-router.get('/total-sms-triggered',(req,res) => {
-
+router.post('/vehicle-list', async (req,res) => {
+    let params = req.body;
+    try{
+        const result = await apiController.fetchAllMotorData(params);
+        res.send(result);
+    }catch(error){
+        res.sendStatus(400).send(error)
+    }
 })
 
 module.exports = router 

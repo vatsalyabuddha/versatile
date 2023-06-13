@@ -1,40 +1,83 @@
 const db = dbConnection;
+const dbHelper = require("./../helpers/dbHelper");
+const moment = require('moment');
 
-async function fetchAllMotorData(){
-    try{
-        let data = await db.promise().query("SELECT * FROM motor_details");
-        //console.log("############Res",data[0]);
-        return data[0];
-    }catch(err){
-        console.log("############Error",err);
-        throw err;
-    }
+async function fetchAllMotorData(params){
+    return new Promise((resolve,reject) => {
+        try{
+            let sql =  "SELECT * FROM motor_details WHERE 1 ";
+            if(params.state){
+                sql += dbHelper.andWhere("rto_code",params.state,"like");
+            }
+            if(params.make_name){
+                sql += dbHelper.andWhere("make_name",params.make_name,"=");
+            }
+            if(params.fuel_type){
+                sql += dbHelper.andWhere("fuel_type",params.fuel_type,"like");
+            }
+
+            if(params.date_to){
+                sql += dbHelper.andWhere("created_date",moment(params.date_to).format("YYYY-MM-DD 23:59:59"),"<=");
+            }else {
+                sql += dbHelper.andWhere("created_date",moment().local().format("YYYY-MM-DD 23:59:59"),"<=");
+            }
+
+            if(params.date_from){
+                sql += dbHelper.andWhere("created_date",moment(params.date_from).format("YYYY-MM-DD 00:00:00"),">=");
+            }else {
+                sql += dbHelper.andWhere("created_date",moment().local().subtract(1, 'months').format("YYYY-MM-DD 00:00:00"),"<=");
+            }
+            //console.log("------ final sql --------\n",sql);
+            
+            db.query(sql, function (error, result, fields) {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(result);
+                }
+            });
+        }catch(error){
+            console.log("############ Error",error);
+            reject(error);
+        }
+    });
 }
 
 async function insertIntoMotorDetails(params){
-    try{
-        let sql = "INSERT INTO `versatile`.`motor_details`(`registration_number`,`maker_model`,`insurance_status`,`owner_name`,`rto_code`,`rto_name`,`rto_city_id`,`rto_city_name`,`rto_state_id`,`rto_state_name`,`registration_date`,`insurance_upto`,`fitness_upto`,`is_communication_required`) VALUES";
-        let insertSQL = sql + params;
-        let data = await db.promise().query(insertSQL);
-        //console.log("############Res",data);
-        return data;
-    }catch(err){
-        console.log("############Error",err);
-        throw err;
-    }
+    return new Promise((resolve,reject) => {
+        try{
+            let sql =  "INSERT INTO `versatile`.`motor_details`" + dbHelper.values(params);
+            db.query(sql, function (error, result, fields) {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(result);
+                }
+            });
+        }catch(error){
+            console.log("############ Error",error);
+            reject(error);
+        }
+    });
 }
 
 async function fetchByRegNumber(regNumber){
-    try{
-        let sql = "select * from `versatile`.`motor_details` where registration_number = " + "'"+regNumber+"'" + "ORDER BY id DESC LIMIT 1";
-        console.log("SQL:",sql);
-        let data = await db.promise().query(sql);
-        //console.log("##############Data:",data);
-        return data;
-    }catch(err){
-        console.log("############Error",err);
-        throw err;
-    }
+    return new Promise((resolve,reject) => {
+        try{
+            let sql = "select * from `versatile`.`motor_details` where registration_number = " + "'"+regNumber+"'" + "ORDER BY id DESC LIMIT 1";
+            db.query(sql, function (error, result, fields) {
+                if (error) {
+                    reject(error);
+                } else {
+                    //console.log("Result :",result);
+                    resolve(result && result[0] ? result[0] : []);
+                }
+            });
+        }catch(error){
+            console.log("############Error",error);
+            reject(error);
+        }
+    });
 }
 
 

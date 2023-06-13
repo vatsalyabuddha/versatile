@@ -22,3 +22,8 @@ Create table motor_details
 	updated_date datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 );
+
+--- update table
+ALTER TABLE motor_details ADD  make_name varchar(50) default NULL;
+ALTER TABLE motor_details ADD  model_name varchar(50) default NULL;
+ALTER TABLE motor_details ADD  fuel_type varchar(50) default NULL
