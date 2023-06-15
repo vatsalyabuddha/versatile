@@ -25,14 +25,14 @@ async function processVahanDataFetch(params){
                 console.log("Error: ",exception);
                 return {
                     status : false,
-                    message : "Could not process image this time, please try after some time."
+                    message : "Something went wrong, please try again after some time."
                 };
             }
         }
 
         // registration number vallidations
         if(!regNumber || (typeof regNumber) !== "string"){
-            return { status : false, message : "Error detecting registration number." };
+            return { status : false, message : "Please upload a clear image with vehicle registration number." };
         }
         console.log(regNumber);
 
@@ -53,7 +53,7 @@ async function processVahanDataFetch(params){
                     registration_number : existedData['registration_number'],
                     registration_date : existedData['registration_date'],
                     insurance_upto : existedData['insurance_upto'],
-                    message : "This registration number was already checked within the communication limit.",
+                    message : "This registration number already exist in our database (Updated in last 15 days).",
                     is_inssured : existedData['insurance_status']
                 };
             }
@@ -113,14 +113,14 @@ async function processVahanDataFetch(params){
                     let communicationRes =  await handleCommunication(data);
                     response = { ...response, ...communicationRes};
                 }else{
-                    response.message = "Registration Number is already insured.";
+                    response.message = "Vehicle is insured.";
                     response.is_inssured =1;
                 }
             }else{
                 console.log("---- Registration Details not found on VAHAN ----");
                 return {
                     status : false,
-                    message : "Registration Details not found on VAHAN for " + regNumber
+                    message : "Vehicle Details not found for " + regNumber
                 }
             }
             
@@ -130,7 +130,7 @@ async function processVahanDataFetch(params){
     }catch(err){
         return {
             status : false,
-            message : "Could not process the data, please try after some time."
+            message : "Uh oh !!! Something went wrong, please try again after some time."
         };
     }
     
@@ -156,12 +156,12 @@ async function handleCommunication(data){
         if(communicationRes[0].status == 1){
             console.log("Registration Number is uninsured. Communication sent.");
             insertCommuData['status_id'] = 1;
-            response.message ="Registration Number is uninsured. Communication sent.";
+            response.message ="Vehicle is uninsured. Communication sent.";
             response.is_inssured = -1;
 
         }else{
             insertCommuData['status_id'] =  -1;
-            response.message = "Registration Number is uninsured. Communication failed.";
+            response.message = "Vehicle is uninsured. Communication failed.";
             response.is_inssured = -1;
         }
 
@@ -173,12 +173,12 @@ async function handleCommunication(data){
         }
         
         if(communicationRes[0].status == 1){
-            console.log("Registration Number is uninsured. Communication sent.");
+            console.log("Vehicle is uninsured. Communication sent.");
             insertCommuData2['status_id'] = 1;
 
         }else{
             insertCommuData2['status_id'] =  -1;
-            response.message = "Registration Number is uninsured. Communication failed.";
+            response.message = "Vehicle is uninsured. Communication failed.";
         }
         //console.log("----- Communication Data ------\n",insertCommuData);
         //console.log("----- Communication Data ------\n",insertCommuData2);
@@ -199,7 +199,7 @@ async function fetchAllMotorData(params){
         console.log("Error:\n",err);
         return {
             status : false,
-            message : "Could not process the request, please try after some time."
+            message : "Uh oh !!! Something went wrong, please try again after some time."
         };
     }
     
