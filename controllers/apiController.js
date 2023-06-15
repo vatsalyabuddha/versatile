@@ -38,8 +38,7 @@ async function processVahanDataFetch(params){
 
         //check if the regNumber is already checked recently
         let existedData = await motorModel.fetchByRegNumber(regNumber);
-        //console.log("Existed Data :",existedData);
-        if(existedData && existedData.length > 0){
+        if(existedData && existedData.id){
             //check if need to send communication again
             let differenceInDays = helper.countDaysDifference(new Date(),existedData['created_date'] ? existedData['created_date'] : new Date());
             
